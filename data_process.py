@@ -97,24 +97,3 @@ def get_month_data(data_dir):
     df['datetime'] = pd.to_datetime(df['date_alt'])
     df['CO2'] = df['CO2'].replace(-99.99, np.nan).astype(float)
     return df[['CO2', 'datetime']]
-
-
-
-
-a = get_day_data('C:\\Users\\olive\\Documents\\CO2\\')
-print(a.dtypes)
-print(a)
-
-def get_train_test(df):
-    y = df['CO2']
-    X = df['datetime']
-    # get train_test_split
-    no_of_split = int((len(df)-3)/3)  # 67/33 split
-    tscv = TimeSeriesSplit(n_splits=int((len(y)-3)/3))
-    for train_index, test_index in tscv.split(X):
-         #To get the indices
-         X_train, X_test = X[train_index], X[test_index]
-         y_train, y_test = y[train_index], y[test_index]
-    return X_train, X_test, y_train, y_test
-
-print(get_train_test(a).shape)
