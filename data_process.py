@@ -25,7 +25,7 @@ def get_minute_data(data_dir):
     # Handle NaN
     df['CO2'] = df['CO2'].replace('NaN', np.nan).astype(float)
     # remove irrelvant data (non-datetime/CO2 columns) and return
-    return df[['CO2', 'datetime']]
+    return df[['CO2', 'datetime']].dropna()
 
 
 def get_day_data(data_dir):
@@ -47,7 +47,7 @@ def get_day_data(data_dir):
     # Handle NaN
     df['CO2'] = df['CO2'].replace('NaN', np.nan).astype(float)
     # remove irrelvant data (non-datetime/CO2 columns) and return
-    return df[['CO2', 'datetime']]
+    return df[['CO2', 'datetime']].dropna()
 
 
 def get_week_data(data_dir):
@@ -64,7 +64,7 @@ def get_week_data(data_dir):
     df = pd.read_csv(weekly_path, names=weekly_header, header=None)
     df['datetime'] = pd.to_datetime(df['week'])
     # return relevant columns
-    return df[['CO2', 'datetime']]
+    return df[['CO2', 'datetime']].dropna()
 
 
 def get_month_data(data_dir):
@@ -96,4 +96,4 @@ def get_month_data(data_dir):
     df = pd.read_csv(monthly_path, names=monthly_header, header=None)
     df['datetime'] = pd.to_datetime(df['date_alt'])
     df['CO2'] = df['CO2'].replace(-99.99, np.nan).astype(float)
-    return df[['CO2', 'datetime']]
+    return df[['CO2', 'datetime']].dropna()
