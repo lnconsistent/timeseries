@@ -94,6 +94,7 @@ def get_month_data(data_dir):
     # Note: use date_alt to create datetime column
     # Add Datetime object as column
     df = pd.read_csv(monthly_path, names=monthly_header, header=None)
-    df['datetime'] = pd.to_datetime(df['date_alt'])
+    df['datetime'] = pd.to_datetime(df['date'], unit='D', origin='1899-12-30')
     df['CO2'] = df['CO2'].replace(-99.99, np.nan).astype(float)
-    return df[['CO2', 'datetime']].dropna()
+    df['CO2_seasonal'] = df['CO2_seasonal'].replace(-99.99, np.nan).astype(float)
+    return df[['CO2', 'CO2_seasonal', 'datetime']].dropna()

@@ -40,9 +40,9 @@ def get_train_test(df):
     print(f"\nAverage MSE: {average_mse}")
 
 
-data = get_week_data('C:\\Users\\olive\\Documents\\CO2\\')
+data = get_month_data('C:\\Users\\olive\\Documents\\CO2\\')
 data = data.set_index('datetime')
-signal = data['CO2']
+signal = data['CO2_seasonal']
 
 # n_lags = 20
 # acf_estimate = acf(signal, nlags=n_lags)
@@ -50,16 +50,16 @@ signal = data['CO2']
 # acf_error_estimate = 2/np.sqrt(len(signal))
 # pacf_error_estimate = 2/np.sqrt(len(signal))
 #
-# fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(40, 20))
+# fig, ax = plt.subplots(1, 1, figsize=(40, 40))
 # fontsize = 15
 # colors = ['#7fcdbb', '#2c7fb8']
 #
-# ax1.plot(signal, color='grey', label='Data')
-# ax1.legend(fontsize=fontsize)
-# ax1.set_xlabel(r'Time index', fontsize=fontsize)
-# ax1.set_ylabel(r'Signal', fontsize=fontsize)
-# ax1.set_title('Data', fontsize=fontsize)
-#
+# signal.plot()
+# ax.legend(fontsize=fontsize)
+# ax.set_xlabel(r'Time index', fontsize=fontsize)
+# ax.set_ylabel(r'Signal', fontsize=fontsize)
+# ax.set_title('Data', fontsize=fontsize)
+
 # sm.graphics.tsa.plot_acf(signal, ax2, lags=20)
 # ax2.legend(fontsize=fontsize)
 # ax2.set_xlabel(r'$|h|$', fontsize=fontsize)
@@ -71,14 +71,14 @@ signal = data['CO2']
 # ax3.set_xlabel(r'$|h|$', fontsize=fontsize)
 # ax3.set_ylabel(r'$\rho(|h|)$', fontsize=fontsize)
 # ax3.set_title('PACF', fontsize=fontsize)
-#
+
 # plt.show()
 
 
 import pmdarima as pm
 
 model = pm.auto_arima(signal,
-                      m=52,
+                      m=12,
                       d=None,
                       start_p=0, start_q=0,
                       max_p=100, max_q=100,
