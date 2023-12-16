@@ -1,94 +1,77 @@
 import pandas as pd
 import numpy
 import matplotlib.pyplot as plt
-import scipy as sp
-import statsmodels.api as sm
-from statsmodels.tsa.stattools import acf, pacf
-from statsmodels.tsa.arima_process import arma_acovf
 from statsmodels.tsa.arima.model import ARIMA
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn.metrics import *
 from data_process import *
-
-
-# p, d, q = 4, 1, 2     # auto-arima for day/week resolution data
-# Model:SARIMAX(4, 1, 1)x(1, 0, 1, 12)    # auto-arima for month resolution data
-
-def get_train_test(df):
-    mse_scores = []
-    # get train_test_split
-    tscv = TimeSeriesSplit(n_splits=int((len(df)-3)/3))
-    for train_index, test_index in tscv.split(df):
-        train, test = df.iloc[train_index], df.iloc[test_index]
-
-        model = ARIMA(train['temperature'], order=(p, d, q))
-        arima_model = model.fit()
-
-        # Predict using the test data
-        predictions = arima_model.predict(start=len(train), end=len(train) + len(test) - 1)
-
-        # Evaluate your predictions against the actual test data
-        mse = mean_squared_error(test['temperature'], predictions)
-        mse_scores.append(mse)
-
-    # Print MSE scores for each fold
-    for i, mse in enumerate(mse_scores, 1):
-        print(f"Fold {i} MSE: {mse}")
-
-    # Optionally, you might want to calculate the average MSE across all folds
-    average_mse = sum(mse_scores) / len(mse_scores)
-    print(f"\nAverage MSE: {average_mse}")
+from sklearn.metrics import mean_squared_error
 
 
 data = get_month_data('C:\\Users\\olive\\Documents\\CO2\\')
-data = data.set_index('datetime')
-signal = data['CO2_seasonal']
+train_data = data[(data.datetime < '2013-01-01')]
 
-# n_lags = 20
-# acf_estimate = acf(signal, nlags=n_lags)
-# pacf_estimate = pacf(signal, nlags=n_lags)
-# acf_error_estimate = 2/np.sqrt(len(signal))
-# pacf_error_estimate = 2/np.sqrt(len(signal))
-#
-# fig, ax = plt.subplots(1, 1, figsize=(40, 40))
-# fontsize = 15
-# colors = ['#7fcdbb', '#2c7fb8']
-#
-# signal.plot()
-# ax.legend(fontsize=fontsize)
-# ax.set_xlabel(r'Time index', fontsize=fontsize)
-# ax.set_ylabel(r'Signal', fontsize=fontsize)
-# ax.set_title('Data', fontsize=fontsize)
+test_data = data[(data.datetime >= '2013-01-01')].set_index('datetime')
+test_data.index = pd.DatetimeIndex(test_data.index)
 
-# sm.graphics.tsa.plot_acf(signal, ax2, lags=20)
-# ax2.legend(fontsize=fontsize)
-# ax2.set_xlabel(r'$|h|$', fontsize=fontsize)
-# ax2.set_ylabel(r'$\rho(|h|)$', fontsize=fontsize)
-# ax2.set_title('ACF', fontsize=fontsize)
-#
-# sm.graphics.tsa.plot_pacf(signal, ax3, lags=20)
-# ax3.legend(fontsize=fontsize)
-# ax3.set_xlabel(r'$|h|$', fontsize=fontsize)
-# ax3.set_ylabel(r'$\rho(|h|)$', fontsize=fontsize)
-# ax3.set_title('PACF', fontsize=fontsize)
+# test_data_no_covid = data[(data.datetime >= '2013-01-01') & (data.datetime <= '2020-01-01')].set_index('datetime')
+# test_data_no_covid.index = pd.DatetimeIndex(test_data_no_covid.index)
 
-# plt.show()
+train_data = train_data.set_index('datetime').drop(columns=['CO2_seasonal'])
+train_data.index = pd.DatetimeIndex(train_data.index).to_period('M')
+fontsize = 15
+colors = ['#7fcdbb', '#2c7fb8']
+
+model = ARIMA(train_data, order=(4, 1, 1), seasonal_order=(1, 0, 1, 12))  # seasonal parameters correspond to a seasonal ARMA(12) term
+res = model.fit()
+
+with_covid = res.forecast(len(test_data)+5)   # adding 5 because the arima stops 5 months before the end of the sequence for some reason
+# without_covid = res.forecast(test_data_no_covid.index[-1])
+
+rmse = mean_squared_error(test_data.CO2.values, with_covid.values[5:], squared=False)
+print(rmse)
+
+fig = plt.figure()
+plt.plot(test_data.index, test_data.CO2.values, label=r'Ground truth', color='r')
+# plt.plot(data.datetime, data.CO2.values, label=r'Ground truth', color='r')
+plt.plot(with_covid.index, with_covid.values, label=r'Predictions', color='b')
+plt.title('CO$_2$ emissions over time', fontsize=fontsize)
+plt.xlabel('Date', fontsize=fontsize)
+plt.ylabel('CO$_2$ emissions (ppm)', fontsize=fontsize)
+plt.legend(fontsize=fontsize)
+plt.show()
+# fig.savefig('C:\\Users\\olive\\Documents\\CO2\\arima_results\\arima_2003_present_total.png')
 
 
-import pmdarima as pm
+'''
+Best model:  ARIMA(4,1,1)(1,0,1)[12] intercept
+Total fit time: 211.259 seconds
+                                     SARIMAX Results                                      
+==========================================================================================
+Dep. Variable:                                  y   No. Observations:                  782
+Model:             SARIMAX(4, 1, 1)x(1, 0, 1, 12)   Log Likelihood                -440.360
+Date:                            Wed, 13 Dec 2023   AIC                            898.720
+Time:                                    04:08:59   BIC                            940.665
+Sample:                                         0   HQIC                           914.852
+                                            - 782                                         
+Covariance Type:                              opg                                         
+==============================================================================
+                 coef    std err          z      P>|z|      [0.025      0.975]
+------------------------------------------------------------------------------
+intercept      0.0011      0.001      1.566      0.117      -0.000       0.002
+ar.L1          0.8087      0.039     20.854      0.000       0.733       0.885
+ar.L2         -0.0563      0.034     -1.648      0.099      -0.123       0.011
+ar.L3         -0.1853      0.032     -5.815      0.000      -0.248      -0.123
+ar.L4         -0.0859      0.032     -2.653      0.008      -0.149      -0.022
+ma.L1         -0.8475      0.030    -28.614      0.000      -0.906      -0.789
+ar.S.L12       0.9843      0.006    168.238      0.000       0.973       0.996
+ma.S.L12      -0.5984      0.026    -23.451      0.000      -0.648      -0.548
+sigma2         0.1748      0.006     27.315      0.000       0.162       0.187
+===================================================================================
+Ljung-Box (L1) (Q):                   0.04   Jarque-Bera (JB):               389.14
+Prob(Q):                              0.85   Prob(JB):                         0.00
+Heteroskedasticity (H):               0.62   Skew:                            -0.16
+Prob(H) (two-sided):                  0.00   Kurtosis:                         6.44
+===================================================================================
 
-model = pm.auto_arima(signal,
-                      m=12,
-                      d=None,
-                      start_p=0, start_q=0,
-                      max_p=100, max_q=100,
-                      D=None,
-                      start_P=0, start_Q=0,
-                      max_P=100, max_Q=100,
-                      trace=True,
-                      error_action='ignore',
-                      suppress_warnings=True,
-                      stepwise=True)
-
-# print model summary
-print(model.summary())
+Warnings:
+[1] Covariance matrix calculated using the outer product of gradients (complex-step).
+'''
